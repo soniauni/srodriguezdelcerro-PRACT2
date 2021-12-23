@@ -1,0 +1,165 @@
+---
+title: "Reclamaciones de seguros: detección de fraudes"
+author: "sonia rodriguez del cerro garcia"
+date: "diciembre de 2021"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+******
+# Seleccion del conjunto de datos
+******
+Utilizando un conjunto de datos proporcionado por Derrick Mwiti publicados en 31 Oct 2018  https://github.com/mwitiderrick  aplicaremos visualizaciones para comprender mejor y analizar estadísticamente los datos.
+
+Para la elaboración de la base de datos se ha decidido extraer una muestra del total de siniestros ocurridos en un período concreto de tiempo de 1.000 expedientes.
+
+Las variables que contiene el conjunto de datos son las siguientes:
+
+ - months_as_customer         :meses como cliente
+ - age                        :edad
+ - policy_number              :número de póliza
+ - policy_bind_date	          :fecha de alta de la póliza
+ - policy_state	              :estado de la póliza
+ - policy_csl	                :cobertura de responsabilidad y por daños a la propiedad  
+ - policy_deductable          :importe deducible	
+ - policy_annual_premium      :prima anual
+ - umbrella_limit	            :límite general
+ - insured_zip	              :codigo postal del asegurado
+ - insured_sex	              :sexo del asegurado
+ - insured_education_level    :nivel educativo del asegurado
+ - insured_occupation	        :ocupacion del asegurado
+ - insured_hobbies	          :hobbies del asegurado
+ - insured_relationship	      :relación con el asegurado
+ - capital-gains	            :ganacias del capital
+ - capital-loss	              :perdidas de capital
+ - incident_date	            :fecha del incidente
+ - incident_type	            :tipo de incidente
+ - collision_type	            :tipo de colisión
+ - incident_severity	        :gravedad del incidente
+ - authorities_contacted	    :autoridades contactadas
+ - incident_state	            :estado donde ocurre el incidente
+ - incident_city	            :ciudad donde ocurre el incidente
+ - incident_location	        :dirección donde ocurre el incidente
+ - incident_hour_of_the_day	  :hora del día donde ocurre el incidente
+ - number_of_vehicles_involved:número de vehículos implicados en el incidente
+ - property_damage	          :daño a la propiedad
+ - bodily_injuries	          :lesiones corporales
+ - witnesses	                :testigos
+ - police_report_available	  :informe policial disponible
+ - total_claim_amount	cantidad:total de la reclamación
+ - injury_claim	              :reclamo por lesiones
+ - property_claim	            :reclamo de propiedad
+ - vehicle_claim	            :reclamo de vehículo
+ - auto_make	                :marca del vehículo
+ - auto_model	                :modelo del vehículo
+ - auto_year	                :año del vehículo
+ - fraud_reported	            :se trata de un fraude (yes/no)
+
+```{r message= FALSE, warning=FALSE}
+# Cargamos los paquetes R que vamos a usar
+library(dplyr)
+library(tidyr) 
+library(gmodels)
+library (Hmisc)
+# Cargamos los datos
+datos <- read.csv('insurance_claims.csv')
+```
+### Dimensión de la base de datos. 
+En este caso tenemos 39 variables y 1.000 observaciones
+```{r}
+dim(datos)
+```
+******
+# Descripcion de las variables
+******
+
+## Tipo de cada variable
+
+La base de datos recopilada comprende información relativa a características propias de los asegurados, variables sociodemográficas e información referente a siniestros acaecidos en el pasado.
+
+Los atributos segun su tipo de datos se dividen en dos tipos 18 variables numericas (dbl, int) y el resto cadenas. Podemos convertir las variables de texto a factores (variables con categorías).
+A continuación, podemos ver la distribución.
+
+
+```{r}
+glimpse(datos)
+```
+
+
+
+## Valores vacios:
+
+```{r}
+colSums(is.na(datos))
+```
+
+
+
+
+## Variables numericas:
+
+Observamos que para las variables cuantitativas la función summary() proporciona una serie de estadísticos descriptivos relacionados con la posición de la variable (media, mediana, máximo, mínimo,.).
+```{r}
+estadisticas <- datos %>% select(-policy_bind_date, -policy_state, -policy_csl, -insured_sex, -insured_education_level, -insured_occupation, -insured_hobbies, -insured_relationship, -incident_date, -incident_type, -collision_type, -incident_severity, -authorities_contacted, -incident_state, -incident_city, -incident_location, -property_damage, -police_report_available, -auto_make, -auto_model, -fraud_reported) %>% describe()
+estadisticas
+```
+
+Hemos detectado que el atributo policy_number tiene mas de 900 valores distintos y que no es un dato revelante para nuestro estudio.
+
+
+## Variables categoricas:
+
+```{r}
+categoricas <- datos %>% select(-months_as_customer, -age, -policy_number, -policy_deductable, -policy_annual_premium, -umbrella_limit, -insured_zip, -capital.gains, -capital.loss, -incident_hour_of_the_day, -number_of_vehicles_involved, -bodily_injuries, -witnesses, -total_claim_amount, -injury_claim, -property_claim, -vehicle_claim, -auto_year)
+apply(categoricas,2, function(x) length(unique(x)))
+```
+
+******
+# Limpieza de datos
+******
+
+Hemos identificado que algunas columnas de cadenas tienen muchos valores distintos (900+): incident_location
+ 
+
+Se han identificado otras variables como irrelevantes: policy_csl
+
+
+Además, se existen variables que dependen unas de otras y que no aportan informacion relevante para este estudio.Auto_make y auto_model, no necesitamos saber el modelo del coche.Incident_type y collision_type, el tipo de colision solo está informado segun el tipo de incidente.
+
+```{r}
+table(datos[,c(19,20)])
+```
+
+## Dataset de trabajo:
+Eliminaremos estas columnas de nuestro conjunto de datos en el paso Procesamiento de datos para mejorar la precisión del modelo: policy_number, incident_location, policy_csl, auto_model, collision_type
+
+Las variables que se introducen en el conjunto final son las siguientes: 
+
+```{r}
+final <- select(datos, -policy_number, -incident_location, -policy_csl, -auto_model, -collision_type)
+glimpse(final)
+```
+
+
+
+
+```{r}
+write.csv(final,"insurance_claims (insurance_claims)_insurance_claims.csv")
+```
+
+```
+
+
+
+
+
+
+
+
